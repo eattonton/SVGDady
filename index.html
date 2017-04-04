@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,height=device-height, user-scalable=no,initial-scale=1, minimum-scale=1, maximum-scale=1">
+    <title>SVG绘图</title>
+    <script type="text/javascript" src="js/jquery-1.11.1.min.js"></script>
+    <script type="text/javascript" src="svg.js-master/dist/svg.min.js"></script>
+    <script type="text/javascript" src="canvg-master/canvg.js"></script>
+    <script type="text/javascript" src="gif.js-master/dist/gif.js"></script>
+    <style type="text/css">
+        *{
+            margin: 0px;
+            padding: 0px;
+        }
+
+        #menu{
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            width: 120px;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="menu">
+         <img id="photo" src="image/photo.png" width="100px" height="100px"></img>
+         <img id="play" src="image/play.png" width="100px" height="100px"></img>
+    </div>
+    <div id="drawing"></div>
+    <canvas id="canvasid" style='display:none'></canvas> 
+    <div id='imgcontainer'></div>
+    <script type="text/javascript">
+        var draw = SVG('drawing').size(document.documentElement.clientWidth,document.documentElement.clientHeight);
+        var c = document.getElementById('canvasid');
+        c.setAttribute('width',document.documentElement.clientWidth);
+        c.setAttribute('height',document.documentElement.clientHeight);
+        var icount=0;   //记录点击次数
+        var pts=[];   //图上面的点
+        var lstObjs=[];
+        var selidx = -1;
+        var t=0;
+        var lstState = [];  //状态列表
+        var animatStart = false;
+        var playflag = 0;
+        var imgIdx = 0;
+        var gif = new GIF({
+                workers: 2,
+                quality: 10,
+                background:"#fff",
+                transparent:"#fff",
+                debug:false,
+                dither:false
+            });
+      
+        gif.on('finished', function(blob) {
+               window.open(URL.createObjectURL(blob));
+               gif.running = false;
+               console.log(gif);
+            });
+
+        $('#photo').mousedown(function(){
+            //lstState.push([pts[0],pts[1],pts[2],pts[3]]);
+            this.setAttribute('src','image/photo2.png');
+        });
+
+        $('#photo').on('touchstart',function(){
+            //lstState.push([pts[0],pts[1],pts[2],pts[3]]);
+            this.setAttribute('src','image/photo2.png');
+        });
+
+        $('#photo').mouseup(function(){
+            lstState.push([pts[0],pts[1],pts[2],pts[3]]);
+            this.setAttribute('src','image/photo.png');
+            //to canvas
+            canvg(c, document.getElementById('drawing').innerHTML);
+      //    var s = document.getElementById('SvgjsSvg1001').outerHTML;
+       //   canvg(c, s, { ignoreMouse: true, ignoreAnimation: true });
+           // console.log(gif);
+          // var c2 = document.getElementById('canvasid');
+             var image = c.toDataURL("image/png");
+             ++imgIdx;
+             var imgTmp = 'img'+imgIdx;
+             $("#imgcontainer").append('<img id="'+imgTmp+'" src="'+image+'"style="display:none" />');
+             document.getElementById(imgTmp).onload = function(){
+                gif.addFrame(this);
+             }
+             
+            
+        });
+
+        $('#photo').on('touchend',function(){
+            lstState.push([pts[0],pts[1],pts[2],pts[3]]);
+            this.setAttribute('src','image/photo.png');
+        });
+
+        $('#play').click(function(){
+           
+           // gif.addFrame(c);
+             gif.render();
+            //开始动画
+            /*
+            if(playflag == 0){
+                this.setAttribute('src','image/pause.png');
+                animatStart = true;
+                playflag = 1;
+                //开始动画
+                window.requestAnimationFrame(Update);
+            }else{
+                this.setAttribute('src','image/play.png');
+                animatStart = false;
+                playflag = 0;
+            }
+            */
+        });
+
+        //动画
+        function Update(){
+            if(animatStart == false){
+                return;
+            }
+            if(lstObjs.length > 0){
+                t = (t+0.01);
+              
+                if(t>(lstState.length-1)){
+                    t=0;
+                }
+                var t2 = parseInt(t);
+                var t3 = (t - t2);
+                if(t2.toFixed(2) !=0 && t3.toFixed(2) == 0){
+                    t3 = 1;
+                    t2 = t2-1;
+                }
+                pt_s = lstState[t2];
+                pt_e = lstState[t2+1];
+                lstObjs[0].attr({x1:pt_s[0]*(1-t3)+pt_e[0]*t3,
+                            y1:pt_s[1]*(1-t3)+pt_e[1]*t3,
+                            x2:pt_s[2]*(1-t3)+pt_e[2]*t3,
+                            y2:pt_s[3]*(1-t3)+pt_e[3]*t3});
+                window.requestAnimationFrame(Update);
+            }
+        }
+
+        //window.requestAnimationFrame(Update);
+
+        var clickdown = function(evt) {
+            selidx = -1;
+            selidx = SelectPoint(evt.pageX,evt.pageY);
+            if(selidx >= 0){
+                console.log(selidx);
+            }else{
+                ++icount;
+                if(icount >= 3){
+                    return;
+                }
+                pts.push(evt.pageX);
+                pts.push(evt.pageY);
+                if(icount % 2 == 0){
+                    var line = draw.line(pts[2*(icount-2)], pts[2*(icount-2)+1], pts[2*(icount-1)], pts[2*(icount-1)+1]);
+                    line.stroke({ 
+                        color:'#ff0000',
+                        width: 2 })
+                    lstObjs.push(line);
+                    
+                    line.node.id = 'L'+icount;
+                } 
+            }
+        }
+
+        var clickmove = function(evt){
+            if(selidx >= 0){
+                //console.log(selidx);
+                var objIdx =parseInt(selidx/2);
+                var poiIdx = selidx%2;
+                var line = lstObjs[objIdx];
+                if(line){
+                    if(poiIdx == 0){
+                        line.attr({x1:evt.pageX,y1:evt.pageY});
+                    }else if(poiIdx == 1){
+                        line.attr({x2:evt.pageX,y2:evt.pageY});
+                    }
+                }   
+            }
+        }
+
+        var clickend = function(evt){
+            if(selidx >= 0){
+                //console.log(selidx);
+                var objIdx =parseInt(selidx/2);
+                var poiIdx = selidx%2;
+                //更新点
+                pts[2*(objIdx+poiIdx)] = evt.pageX;
+                pts[2*(objIdx+poiIdx)+1] = evt.pageY;
+            }
+            selidx = -1;
+        }
+
+        draw.touchstart(function(evt){
+            clickdown(evt.touches[0]);
+        });
+        draw.touchmove(function(evt){
+            clickmove(evt.touches[0]);
+        });
+        draw.touchend(function(evt){
+            clickend(evt.changedTouches[0]);
+        });
+
+        draw.mousedown(clickdown);
+        draw.mousemove(clickmove);
+        draw.mouseup(clickend);
+
+        function SelectPoint(px,py){
+            for(var i=0;i<icount;i++){
+                var px2 = pts[2*i];
+                var py2 = pts[2*i+1];
+                var dist = Math.sqrt((px-px2)*(px-px2) + (py-py2)*(py-py2));
+                if(dist < 10){
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+    </script>
+</body>
+</html>

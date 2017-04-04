@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,height=device-height, user-scalable=no,initial-scale=1, minimum-scale=1, maximum-scale=1">
+    <title>SVG2gif</title>
+    <script type="text/javascript" src="js/jquery-1.11.1.min.js"></script>
+    <script type="text/javascript" src="svg.js-master/dist/svg.min.js"></script>
+    <script type="text/javascript" src="canvg-master/canvg.js"></script>
+    <script type="text/javascript" src="gif.js-master/dist/gif.js"></script>
+    <style type="text/css">
+        *{
+            margin: 0px;
+            padding: 0px;
+        }
+
+        #menu{
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            width: 120px;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="svgTest" width="100" height="200">
+        <svg id='svgid' width="100" height="200">
+            <line x1="0" y1="0" x2="300" y2="300" style="stroke:rgb(99,99,99);stroke-width:2"/>
+        </svg>
+    </div>
+    <div id="svgTest2" width="100" height="200">
+        <svg id='svgid2' width="100" height="200">
+            <line x1="100" y1="0" x2="0" y2="200" style="stroke:rgb(99,99,99);stroke-width:2"/>
+        </svg>
+    </div>
+    <canvas id="canvasid" width="100px" height="200px" ></canvas> 
+    <canvas id="canvasid2" width="100px" height="200px"  ></canvas> 
+    <div id='imgcontainer' width='200px' height='300px'></div>
+    <script type="text/javascript">
+         window.onload = function() {
+            //to canvas
+           // canvg(document.getElementById('canvasid'), document.getElementById('svgTest').innerHTML, { ignoreMouse: true, ignoreAnimation: true });
+            //var imgSrc = document.getElementById('canvasid').toDataUrl("image/png");
+            var c = document.getElementById('canvasid');
+            var c2 = document.getElementById('canvasid2');
+       //    var s = $('#svgTest').html();
+         //  var s2 = $('#svgTest2').html();
+            var s = document.getElementById('svgid').outerHTML;
+            var s2 = document.getElementById('svgid2').outerHTML;
+         //  var s2 = $('#svgid2')[0].outerHTML;
+         //  console.log($('#svgTest').html());
+          //  console.log(s2);
+           // var svg = 'svg/10.svg';
+           // console.log(svg);
+            canvg(c, s, { ignoreMouse: true, ignoreAnimation: true });
+            canvg(c2, s2, { ignoreMouse: true, ignoreAnimation: true });
+         //   var ctx=c.getContext("2d");
+            //ctx.fillStyle="#FF0000";
+            //ctx.fillRect(0,0,150,75);
+
+            //var url = c.toDataURL('image/jpeg')
+
+            //console.log(c);
+           // c.onclick = function(){
+           //     console.log(c.toDataURL);
+           // };
+            var image = c.toDataURL("image/png");
+            var image2 = c2.toDataURL("image/png");
+             $("#imgcontainer").append('<img id="img1" width=100px height=200px src="'+image+'" />');
+             $("#imgcontainer").append('<img id="img2" width=100px height=200px src="'+image2+'" />');
+             //to gif
+             var gif = new GIF({
+                workers: 2,
+                quality: 10,
+                background:"#fff",
+                debug:false,
+                dither:false,
+                transparent:"#fff"
+            });
+
+           //  console.log(gif);
+
+            // gif.addFrame(document.getElementById('img1'));
+             //gif.addFrame(document.getElementById('img2'), {delay: 1000});
+           gif.addFrame(c);
+           gif.addFrame(c2, {delay: 200});
+            // or a canvas element
+            //gif.addFrame(canvasElement, {delay: 200});
+            gif.on('finished', function(blob) {
+               window.open(URL.createObjectURL(blob));
+            });
+
+             gif.render();
+            
+         }
+    </script>
+</body>
+</html>
